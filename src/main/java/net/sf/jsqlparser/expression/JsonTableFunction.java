@@ -36,6 +36,14 @@ public class JsonTableFunction extends Function {
         ERROR, NULL, EMPTY
     }
 
+    public enum JsonTableOnEmptyType {
+        ERROR, NULL, EMPTY
+    }
+
+    public enum JsonTableParsingType {
+        STRICT, LAX
+    }
+
     public static class JsonTablePassingClause extends ASTNodeAccessImpl implements Serializable {
         private Expression valueExpression;
         private String parameterName;
@@ -78,9 +86,27 @@ public class JsonTableFunction extends Function {
     }
 
     public static class JsonTableWrapperClause extends ASTNodeAccessImpl implements Serializable {
+        private boolean beforePathExpression;
         private JsonFunction.JsonWrapperType wrapperType;
         private JsonFunction.JsonWrapperMode wrapperMode;
         private boolean array;
+
+        /**
+         * Creates a wrapper clause. Depending on the dialect, this clause can come before or after the PATH expression.
+         * <ul>
+         *     <li>Trino: after PATH</li>
+         *     <li>Oracle: before PATH</li>
+         * </ul>
+         *
+         * @param beforePathExpression A flag to determine wether the clause is rendered before or after the PATH expression
+         */
+        public JsonTableWrapperClause(boolean beforePathExpression) {
+            this.beforePathExpression = beforePathExpression;
+        }
+
+        public boolean isBeforePathExpression() {
+            return beforePathExpression;
+        }
 
         public JsonFunction.JsonWrapperType getWrapperType() {
             return wrapperType;
@@ -159,6 +185,15 @@ public class JsonTableFunction extends Function {
 
     public static class JsonTableOnErrorClause extends ASTNodeAccessImpl implements Serializable {
         private JsonTableOnErrorType type;
+        private boolean beforeColumns = true;
+
+        public JsonTableOnErrorClause(boolean beforeColumns) {
+            this.beforeColumns = beforeColumns;
+        }
+
+        public boolean isBeforeColumns() {
+            return beforeColumns;
+        }
 
         public JsonTableOnErrorType getType() {
             return type;
@@ -172,6 +207,48 @@ public class JsonTableFunction extends Function {
         @Override
         public String toString() {
             return type + " ON ERROR";
+        }
+    }
+
+    public static class JsonTableOnEmptyClause extends ASTNodeAccessImpl implements Serializable {
+        private JsonTableOnEmptyType type;
+
+        public JsonTableOnEmptyClause() {
+        }
+
+        public JsonTableOnEmptyType getType() {
+            return type;
+        }
+
+        public JsonTableOnEmptyClause setType(JsonTableOnEmptyType type) {
+            this.type = type;
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return type + " ON EMPTY";
+        }
+    }
+
+    public static class JsonTableParsingTypeClause extends ASTNodeAccessImpl implements Serializable {
+        private JsonTableParsingType type;
+
+        public JsonTableParsingTypeClause() {
+        }
+
+        public JsonTableParsingType getType() {
+            return type;
+        }
+
+        public JsonTableParsingTypeClause setType(JsonTableParsingType type) {
+            this.type = type;
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return "TYPE(" + type + ")";
         }
     }
 
@@ -532,10 +609,13 @@ public class JsonTableFunction extends Function {
                 builder.append(scalarsType);
                 builder.append(" SCALARS");
             }
+            if (wrapperClause != null && wrapperClause.isBeforePathExpression()) {
+                builder.append(" ").append(wrapperClause);
+            }
             if (pathExpression != null) {
                 builder.append(" PATH ").append(pathExpression);
             }
-            if (wrapperClause != null) {
+            if (wrapperClause != null && !wrapperClause.isBeforePathExpression()) {
                 builder.append(" ").append(wrapperClause);
             }
             if (quotesClause != null) {
@@ -595,9 +675,21 @@ public class JsonTableFunction extends Function {
     private JsonTableColumnsClause columnsClause;
     private JsonTablePlanClause planClause;
     private JsonTableOnErrorClause onErrorClause;
+    private JsonTableParsingTypeClause parsingTypeClause;
+    private JsonTableOnEmptyClause onEmptyClause;
+    private boolean formatJson;
 
     public JsonTableFunction() {
         setName("JSON_TABLE");
+    }
+
+    public boolean getFormatJson() {
+        return formatJson;
+    }
+
+    public JsonTableFunction setFormatJson(boolean formatJson) {
+        this.formatJson = formatJson;
+        return this;
     }
 
     public Expression getJsonInputExpression() {
@@ -663,6 +755,24 @@ public class JsonTableFunction extends Function {
         return this;
     }
 
+    public JsonTableParsingTypeClause getParsingTypeClause() {
+        return parsingTypeClause;
+    }
+
+    public JsonTableFunction setParsingTypeClause(JsonTableParsingTypeClause parsingTypeClause) {
+        this.parsingTypeClause = parsingTypeClause;
+        return this;
+    }
+
+    public JsonTableOnEmptyClause getOnEmptyClause() {
+        return onEmptyClause;
+    }
+
+    public JsonTableFunction setOnEmptyClause(JsonTableOnEmptyClause onEmptyClause) {
+        this.onEmptyClause = onEmptyClause;
+        return this;
+    }
+
     public List<Expression> getAllExpressions() {
         List<Expression> expressions = new ArrayList<>();
         if (jsonInputExpression != null) {
@@ -692,6 +802,9 @@ public class JsonTableFunction extends Function {
     public String toString() {
         StringBuilder builder = new StringBuilder("JSON_TABLE(");
         builder.append(jsonInputExpression);
+        if (formatJson) {
+            builder.append(" FORMAT JSON");
+        }
         if (jsonPathExpression != null) {
             builder.append(", ").append(jsonPathExpression);
         }
@@ -709,11 +822,20 @@ public class JsonTableFunction extends Function {
                 first = false;
             }
         }
+        if (onErrorClause != null && onErrorClause.isBeforeColumns()) {
+            builder.append(" ").append(onErrorClause);
+        }
+        if (parsingTypeClause != null) {
+            builder.append(" ").append(parsingTypeClause);
+        }
+        if (onEmptyClause != null) {
+            builder.append(" ").append(onEmptyClause);
+        }
         builder.append(" ").append(columnsClause);
         if (planClause != null) {
             builder.append(" ").append(planClause);
         }
-        if (onErrorClause != null) {
+        if (onErrorClause != null && !onErrorClause.isBeforeColumns()) {
             builder.append(" ").append(onErrorClause);
         }
         builder.append(")");

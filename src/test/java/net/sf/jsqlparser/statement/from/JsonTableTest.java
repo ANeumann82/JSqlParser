@@ -3,6 +3,7 @@ package net.sf.jsqlparser.statement.from;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.JsonTableFunction;
+import net.sf.jsqlparser.expression.json.JsonOnEmptyType;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.FromItem;
@@ -93,9 +94,11 @@ public class JsonTableTest {
             "JSON_TABLE(document COLUMNS( val VARCHAR2 PATH '$.pathTest'))",
             "JSON_TABLE(document COLUMNS( val VARCHAR2(240) PATH '$.pathTest'))",
             "JSON_TABLE(document COLUMNS( val VARCHAR2(240) FORMAT JSON PATH '$.pathTest'))",
-            "JSON_TABLE(document COLUMNS( val VARCHAR2(500 BYTE) PATH '$.pathTest'))",
-            "JSON_TABLE(document COLUMNS( val VARCHAR2(100 CHAR) PATH '$.pathTest'))",
-            "JSON_TABLE(document COLUMNS( val VARCHAR2(500 BYTE) FORMAT JSON DISALLOW SCALARS WITH UNCONDITIONAL ARRAY WRAPPER PATH '$.pathTest' EMPTY OBJECT ON ERROR))",
+
+            // These would require adapting ColDataType in Line 10176
+//            "JSON_TABLE(document COLUMNS( val VARCHAR2(500 BYTE) PATH '$.pathTest'))",
+//            "JSON_TABLE(document COLUMNS( val VARCHAR2(100 CHAR) PATH '$.pathTest'))",
+//            "JSON_TABLE(document COLUMNS( val VARCHAR2(500 BYTE) FORMAT JSON DISALLOW SCALARS WITH UNCONDITIONAL ARRAY WRAPPER PATH '$.pathTest' EMPTY OBJECT ON ERROR))",
     })
     void testQueryColumns(String jsonTableStr) throws JSQLParserException {
         JsonTableFunction table = parseTable(jsonTableStr);
@@ -103,20 +106,20 @@ public class JsonTableTest {
         assertThat(table.getColumnsClause().getColumnDefinitions()).hasSize(1);
     }
 
-//    @Test
-//    void testFormatJson() throws JSQLParserException {
-//        String expression = "JSON_TABLE(document FORMAT JSON COLUMNS( id FOR ORDINALITY))";
-//        JsonTableFunction table = parseTable(expression);
-//
-//        assertThat(table.isFormatJson()).isTrue();
-//    }
+    @Test
+    void testFormatJson() throws JSQLParserException {
+        String expression = "JSON_TABLE(document FORMAT JSON COLUMNS( id FOR ORDINALITY))";
+        JsonTableFunction table = parseTable(expression);
+
+        assertThat(table.getFormatJson()).isTrue();
+    }
 
     @Test
     void testPathExpression() throws JSQLParserException {
         String expression = "JSON_TABLE(document, '$.SubPath' COLUMNS( id FOR ORDINALITY))";
         JsonTableFunction table = parseTable(expression);
 
-        assertThat(table.getJsonPathExpression()).isEqualTo("$.SubPath");
+        assertThat(table.getJsonPathExpression().toString()).isEqualTo("'$.SubPath'");
     }
 
     @Test
@@ -135,46 +138,46 @@ public class JsonTableTest {
         assertThat(table.getOnErrorClause().getType()).isEqualTo(JsonTableFunction.JsonTableOnErrorType.ERROR);
     }
 
-//    @Test
-//    void testNullOnEmpty() throws JSQLParserException {
-//        String expression = "JSON_TABLE(document NULL ON EMPTY COLUMNS( id FOR ORDINALITY))";
-//        JsonTableFunction  table = parseTable(expression);
-//
-//        assertThat(table.getOnEmptyClause.getType()).isEqualTo(JsonOnEmptyType.NULL);
-//    }
+    @Test
+    void testNullOnEmpty() throws JSQLParserException {
+        String expression = "JSON_TABLE(document NULL ON EMPTY COLUMNS( id FOR ORDINALITY))";
+        JsonTableFunction  table = parseTable(expression);
 
-//    @Test
-//    void testErrorOnEmpty() throws JSQLParserException {
-//        String expression = "JSON_TABLE(document ERROR ON EMPTY COLUMNS( id FOR ORDINALITY))";
-//        JsonTable table = parseTable(expression);
-//
-//        assertThat(table.getOnEmptyType()).isEqualTo(JsonOnEmptyType.ERROR);
-//    }
+        assertThat(table.getOnEmptyClause().getType()).isEqualTo(JsonTableFunction.JsonTableOnEmptyType.NULL);
+    }
 
-//    @Test
-//    void testTableTypeLax() throws JSQLParserException {
-//        String expression = "JSON_TABLE(document TYPE(LAX) COLUMNS( id FOR ORDINALITY))";
-//        JsonTable table = parseTable(expression);
-//
-//        assertThat(table.getType()).isEqualTo(JsonTableType.LAX);
-//    }
+    @Test
+    void testErrorOnEmpty() throws JSQLParserException {
+        String expression = "JSON_TABLE(document ERROR ON EMPTY COLUMNS( id FOR ORDINALITY))";
+        JsonTableFunction table = parseTable(expression);
 
-//    @Test
-//    void testTableTypeStrict() throws JSQLParserException {
-//        String expression = "JSON_TABLE(document TYPE(STRICT) COLUMNS( id FOR ORDINALITY))";
-//        JsonTable table = parseTable(expression);
-//
-//        assertThat(table.getType()).isEqualTo(JsonTableType.STRICT);
-//    }
+        assertThat(table.getOnEmptyClause().getType()).isEqualTo(JsonTableFunction.JsonTableOnEmptyType.ERROR);
+    }
+
+    @Test
+    void testParsingTypeLax() throws JSQLParserException {
+        String expression = "JSON_TABLE(document TYPE(LAX) COLUMNS( id FOR ORDINALITY))";
+        JsonTableFunction table = parseTable(expression);
+
+        assertThat(table.getParsingTypeClause().getType()).isEqualTo(JsonTableFunction.JsonTableParsingType.LAX);
+    }
+
+    @Test
+    void testParsingTypeStrict() throws JSQLParserException {
+        String expression = "JSON_TABLE(document TYPE(STRICT) COLUMNS( id FOR ORDINALITY))";
+        JsonTableFunction table = parseTable(expression);
+
+        assertThat(table.getParsingTypeClause().getType()).isEqualTo(JsonTableFunction.JsonTableParsingType.STRICT);
+    }
 
 //    @Test
 //    void testColumnTypeExists() throws JSQLParserException {
 //        String expression = "JSON_TABLE(document COLUMNS( hasValue EXISTS PATH '$.pathTest'))";
-//        JsonTable table = parseTable(expression);
+//        JsonTableFunction table = parseTable(expression);
 //
-//        assertThat(table.getColumns()).hasSize(1);
+//        assertThat(table.getColumnsClause().getColumnDefinitions()).hasSize(1);
 //
-//        JsonTableColumn col = table.getColumns().get(0);
+//        JsonTableFunction.JsonTableColumnDefinition col = table.getColumnsClause().getColumnDefinitions().get(0);
 //        assertThat(col.getType()).isEqualTo(JsonTableColumnType.JSON_EXISTS);
 //    }
 
@@ -194,29 +197,32 @@ public class JsonTableTest {
 //        assertThat(table.toString()).isEqualTo(
 //                "JSON_TABLE(document FORMAT JSON, '$.subPath' ERROR ON ERROR TYPE(STRICT) NULL ON EMPTY COLUMNS(id FOR ORDINALITY))");
 //    }
-//
+
 //    @Test
 //    void testValidSetters() {
-//        JsonTable table = new JsonTable();
+//        JsonTableFunction table = new JsonTableFunction();
+//
+//        JsonTableFunction.JsonTableOnEmptyClause onEmptyClause = new JsonTableFunction.JsonTableOnEmptyClause();
+//        JsonTableFunction.JsonTableOnErrorClause onErrorClause = new JsonTableFunction.JsonTableOnErrorClause(true);
 //
 //        assertThatNoException().isThrownBy(() -> {
-//            table.setOnEmptyType(null);
-//            table.setOnEmptyType(JsonOnEmptyType.NULL);
-//            table.setOnEmptyType(JsonOnEmptyType.ERROR);
+//            table.setOnEmptyClause(null);
+//            onEmptyClause.setType(JsonTableFunction.JsonTableOnEmptyType.NULL);
+//            onEmptyClause.setType(JsonTableFunction.JsonTableOnEmptyType.ERROR);
 //
-//            table.setOnErrorType(null);
-//            table.setOnErrorType(JsonOnErrorType.NULL);
-//            table.setOnErrorType(JsonOnErrorType.ERROR);
+//            onErrorClause.setOnErrorType(null);
+//            onErrorClause.setOnErrorType(JsonTableFunction.JsonTableOnErrorType);
+//            onErrorClause.setOnErrorType(JsonOnErrorType.ERROR);
 //
 //            table.setType(null);
 //            table.setType(JsonTableType.LAX);
 //            table.setType(JsonTableType.STRICT);
 //        });
 //    }
-//
+
 //    @Test
 //    void testInvalidSetters() {
-//        JsonTable table = new JsonTable();
+//        JsonTableFunction table = new JsonTable();
 //
 //        assertThatThrownBy(() -> table.setOnEmptyType(JsonOnEmptyType.EMPTY))
 //                .isInstanceOf(IllegalArgumentException.class);

@@ -926,6 +926,7 @@ String NonReservedWord() :
       | tk=<K_KILL:"KILL">
       | tk=<K_FN:"FN">
       | tk=<K_LAST: "LAST">
+      | tk=<K_LAX: "LAX">
       | tk=<K_LEADING:"LEADING">
       | tk=<K_LESS:"LESS">
       | tk=<K_LEVEL:"LEVEL">
@@ -9419,9 +9420,9 @@ JsonFunction.JsonOnResponseBehavior JsonTableOnEmptyBehavior() : {
     }
 }
 
-JsonTableFunction.JsonTableWrapperClause JsonTableWrapperClause() : {
+JsonTableFunction.JsonTableWrapperClause JsonTableWrapperClause(boolean beforePathExpr) : {
     JsonTableFunction.JsonTableWrapperClause wrapperClause =
-            new JsonTableFunction.JsonTableWrapperClause();
+            new JsonTableFunction.JsonTableWrapperClause(beforePathExpr);
     Token token;
 }
 {
@@ -9508,7 +9509,7 @@ JsonTableFunction.JsonTableColumnDefinition JsonTableColumnDefinition() : {
             columnDefinition = valueColumnDefinition;
         }
         (
-            <K_FOR> JsonKeyword("ORDINALITY") { valueColumnDefinition.setForOrdinality(true); }
+            <K_FOR> <K_ORDINALITY> { valueColumnDefinition.setForOrdinality(true); }
             |
             [ dataType = ColDataType() { valueColumnDefinition.setDataType(dataType); } ]
             [
@@ -9523,8 +9524,11 @@ JsonTableFunction.JsonTableColumnDefinition JsonTableColumnDefinition() : {
                 )
                 JsonKeyword("SCALARS")
             ]
+            // In Oracle, the wrapper clause comes before the PATH expression
+            [ wrapperClause = JsonTableWrapperClause(true) { valueColumnDefinition.setWrapperClause(wrapperClause); } ]
             [ <K_PATH> expression = Expression() { valueColumnDefinition.setPathExpression(expression); } ]
-            [ wrapperClause = JsonTableWrapperClause() { valueColumnDefinition.setWrapperClause(wrapperClause); } ]
+            // In Truno the wrapper clause comes after the PATH expression
+            [ wrapperClause = JsonTableWrapperClause(false) { valueColumnDefinition.setWrapperClause(wrapperClause); } ]
             [
                 LOOKAHEAD({
                     getToken(1).kind == K_KEEP
@@ -9657,9 +9661,9 @@ JsonTableFunction.JsonTablePlanClause JsonTablePlanClause() : {
     }
 }
 
-JsonTableFunction.JsonTableOnErrorClause JsonTableOnErrorClause() : {
+JsonTableFunction.JsonTableOnErrorClause JsonTableOnErrorClause(boolean beforeColumns) : {
     JsonTableFunction.JsonTableOnErrorClause onErrorClause =
-            new JsonTableFunction.JsonTableOnErrorClause();
+            new JsonTableFunction.JsonTableOnErrorClause(beforeColumns);
     Token token;
 }
 {
@@ -9667,12 +9671,52 @@ JsonTableFunction.JsonTableOnErrorClause JsonTableOnErrorClause() : {
         <K_ERROR> { onErrorClause.setType(JsonTableFunction.JsonTableOnErrorType.ERROR); }
         |
         <K_EMPTY> { onErrorClause.setType(JsonTableFunction.JsonTableOnErrorType.EMPTY); }
+        |
+        <K_NULL> { onErrorClause.setType(JsonTableFunction.JsonTableOnErrorType.NULL); }
     )
     <K_ON> <K_ERROR>
     {
         if (onErrorClause.getType() != null) {
             return onErrorClause;
         }
+    }
+}
+
+JsonTableFunction.JsonTableOnEmptyClause JsonTableOnEmptyClause() : {
+    JsonTableFunction.JsonTableOnEmptyClause onEmptyClause =
+            new JsonTableFunction.JsonTableOnEmptyClause();
+    Token token;
+}
+{
+    (
+        <K_ERROR> { onEmptyClause.setType(JsonTableFunction.JsonTableOnEmptyType.ERROR); }
+        |
+        <K_EMPTY> { onEmptyClause.setType(JsonTableFunction.JsonTableOnEmptyType.EMPTY); }
+        |
+        <K_NULL> { onEmptyClause.setType(JsonTableFunction.JsonTableOnEmptyType.NULL); }
+    )
+    <K_ON> <K_EMPTY>
+    {
+        if (onEmptyClause.getType() != null) {
+            return onEmptyClause;
+        }
+    }
+}
+
+JsonTableFunction.JsonTableParsingTypeClause JsonTableParsingTypeClause() : {
+    JsonTableFunction.JsonTableParsingTypeClause parsingType = new JsonTableFunction.JsonTableParsingTypeClause();
+}
+{
+    <K_TYPE>
+    <OPENING_BRACKET>
+    (
+        <K_STRICT> { parsingType.setType(JsonTableFunction.JsonTableParsingType.STRICT); }
+        |
+        <K_LAX>  { parsingType.setType(JsonTableFunction.JsonTableParsingType.LAX); }
+    )
+    <CLOSING_BRACKET>
+    {
+        return parsingType;
     }
 }
 
@@ -9685,12 +9729,15 @@ JsonTableFunction JsonTableBody() : {
     JsonTableFunction.JsonTableColumnsClause columnsClause;
     JsonTableFunction.JsonTablePlanClause planClause = null;
     JsonTableFunction.JsonTableOnErrorClause onErrorClause = null;
+    JsonTableFunction.JsonTableParsingTypeClause parsingTypeClause = null;
+    JsonTableFunction.JsonTableOnEmptyClause onEmptyClause = null;
 }
 {
     "("
     jsonInput = Expression() {
         function.setJsonInputExpression(jsonInput);
     }
+    [ <K_FORMAT> <K_JSON> { function.setFormatJson(true); } ]
     [
         ","
         jsonPath = Expression() {
@@ -9708,9 +9755,12 @@ JsonTableFunction JsonTableBody() : {
             passingClause = JsonTablePassingClause() { function.addPassingClause(passingClause); }
         )*
     ]
+    [ LOOKAHEAD(3) onErrorClause = JsonTableOnErrorClause(true) { function.setOnErrorClause(onErrorClause); } ]
+    [ parsingTypeClause = JsonTableParsingTypeClause() { function.setParsingTypeClause(parsingTypeClause); } ]
+    [ onEmptyClause = JsonTableOnEmptyClause() { function.setOnEmptyClause(onEmptyClause); } ]
     columnsClause = JsonTableColumnsClause() { function.setColumnsClause(columnsClause); }
     [ planClause = JsonTablePlanClause() { function.setPlanClause(planClause); } ]
-    [ onErrorClause = JsonTableOnErrorClause() { function.setOnErrorClause(onErrorClause); } ]
+    [ onErrorClause = JsonTableOnErrorClause(false) { function.setOnErrorClause(onErrorClause); } ]
     ")"
     {
         return function;
@@ -10211,6 +10261,7 @@ ColDataType DataType():
             ]
             [
                 LOOKAHEAD(2) "(" ( tk=<S_LONG> { precision = Integer.valueOf(tk.image); } |  tk=<K_MAX> { precision = Integer.MAX_VALUE; } )
+                [ <K_BYTE> | <K_CHAR> ]
                 [ "," tk = <S_LONG> { scale = Integer.valueOf(tk.image); } ]
                 ")"
             ]
