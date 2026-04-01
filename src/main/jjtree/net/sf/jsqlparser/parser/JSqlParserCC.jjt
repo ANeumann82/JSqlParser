@@ -805,7 +805,6 @@ String NonReservedWord() :
       | tk=<K_ALGORITHM: "ALGORITHM">
       | tk=<K_ALIGN:"ALIGN">
       | tk=<K_ALTER:"ALTER">
-      | tk=<K_ALLOW:"ALLOW">
       | tk=<K_ALWAYS:"ALWAYS">
       | tk=<K_ANALYZE:"ANALYZE">
       | tk=<K_APPEND_ONLY:"APPEND_ONLY">
@@ -878,7 +877,6 @@ String NonReservedWord() :
       | tk=<K_DESC:"DESC">
       | tk=<K_DESCRIBE:"DESCRIBE">
       | tk=<K_DISABLE : "DISABLE">
-      | tk=<K_DISALLOW:"DISALLOW">
       | tk=<K_DISCARD : "DISCARD">
       | tk=<K_DISCONNECT:"DISCONNECT">
       | tk=<K_DIV:"DIV">
@@ -961,7 +959,6 @@ String NonReservedWord() :
       | tk=<K_KILL:"KILL">
       | tk=<K_FN:"FN">
       | tk=<K_LAST: "LAST">
-      | tk=<K_LAX: "LAX">
       | tk=<K_LEADING:"LEADING">
       | tk=<K_LESS:"LESS">
       | tk=<K_LEVEL:"LEVEL">
@@ -1350,7 +1347,7 @@ TOKEN : /* Data Types */
     | <#TYPE_UHUGEINT: "UHUGEINT" >
     | <#TYPE_REAL: "REAL" | "FLOAT4" | "FLOAT">
     | <#TYPE_DOUBLE: "DOUBLE" | "PRECISION"  | "FLOAT8" | "FLOAT64">
-    | <#TYPE_VARCHAR: "NVARCHAR" | "VARCHAR" | "NCHAR" | <K_CHAR> | "BPCHAR" | "TEXT" | "STRING" | <K_CHARACTER> | "VARYING" | "VARCHAR2">
+    | <#TYPE_VARCHAR: "NVARCHAR" | "VARCHAR" | "NCHAR" | <K_CHAR> | "BPCHAR" | "TEXT" | "STRING" | <K_CHARACTER> | "VARYING">
     | <#TYPE_TIME: "TIMETZ" >
     | <#TYPE_TIMESTAMP: "TIMESTAMP_NS" | "TIMESTAMP_MS" | "TIMESTAMP_S"  >
 
@@ -5861,8 +5858,6 @@ FromItem FromItem() #FromItem:
             || (getToken(1).kind == K_LATERAL && getToken(2).kind != OPENING_BRACKET) })
         fromItem=TableFunction()
         |
-//        fromItem=JsonTable()
-//        |
         LOOKAHEAD(3) fromItem=Table()
         |
         LOOKAHEAD(ParenthesedFromItem()) fromItem = ParenthesedFromItem()
@@ -9684,16 +9679,28 @@ JsonTableFunction.JsonTableColumnDefinition JsonTableColumnDefinition() : {
         (
             <K_FOR> <K_ORDINALITY> { valueColumnDefinition.setForOrdinality(true); }
             |
-            [ dataType = ColDataType() { valueColumnDefinition.setDataType(dataType); } ]
+            [
+                // Very ugly: ColDataType can consume an IDENTIFIER, which is fine, but we don't want it to
+                // consume an ALLOW or DISALLOW because that's a keyword for Oracle in this place.
+                // So we make a LOOKAHEAD on ColDataType, BUT we exclude the two cases for the IDENTIFIER
+                LOOKAHEAD(
+                    ColDataType(),
+                        { !(getToken(1).kind == S_IDENTIFIER && (
+                                getToken(1).image.equalsIgnoreCase("ALLOW")
+                                || getToken(1).image.equalsIgnoreCase("DISALLOW"))) } )
+                dataType = ColDataType() { valueColumnDefinition.setDataType(dataType); }
+            ]
             [
                 <K_FORMAT> <K_JSON> { valueColumnDefinition.setFormatJson(true); }
                 [ <K_ENCODING> encoding = JsonEncoding() { valueColumnDefinition.setEncoding(encoding); } ]
             ]
             [
                 (
-                    <K_ALLOW> { valueColumnDefinition.setScalarsType(JsonFunction.ScalarsType.ALLOW); }
+                    LOOKAHEAD({ getToken(1).kind == S_IDENTIFIER && getToken(1).image.equalsIgnoreCase("ALLOW") })
+                            JsonKeyword("ALLOW") { valueColumnDefinition.setScalarsType(JsonFunction.ScalarsType.ALLOW); }
                     |
-                    <K_DISALLOW> { valueColumnDefinition.setScalarsType(JsonFunction.ScalarsType.DISALLOW); }
+                    LOOKAHEAD({ getToken(1).kind == S_IDENTIFIER && getToken(1).image.equalsIgnoreCase("DISALLOW") })
+                            JsonKeyword("DISALLOW") { valueColumnDefinition.setScalarsType(JsonFunction.ScalarsType.DISALLOW); }
                 )
                 JsonKeyword("SCALARS")
             ]
@@ -9903,7 +9910,8 @@ JsonTableFunction.JsonTableParsingTypeClause JsonTableParsingTypeClause() : {
     (
         <K_STRICT> { parsingType.setType(JsonTableFunction.JsonTableParsingType.STRICT); }
         |
-        <K_LAX>  { parsingType.setType(JsonTableFunction.JsonTableParsingType.LAX); }
+        LOOKAHEAD({ getToken(1).kind == S_IDENTIFIER && getToken(1).image.equalsIgnoreCase("LAX") })
+                JsonKeyword("LAX") { parsingType.setType(JsonTableFunction.JsonTableParsingType.LAX); }
     )
     <CLOSING_BRACKET>
     {

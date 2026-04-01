@@ -92,9 +92,9 @@ public class JsonTableOracleTest {
             "JSON_TABLE(document COLUMNS( val BLOB PATH '$.pathTest'))",
             "JSON_TABLE(document COLUMNS( val JSON PATH '$.pathTest'))",
             "JSON_TABLE(document COLUMNS( val VECTOR PATH '$.pathTest'))",
-            "JSON_TABLE(document COLUMNS( val VARCHAR2 PATH '$.pathTest'))",
-            "JSON_TABLE(document COLUMNS( val VARCHAR2(240) PATH '$.pathTest'))",
-            "JSON_TABLE(document COLUMNS( val VARCHAR2(240) FORMAT JSON PATH '$.pathTest'))",
+            "JSON_TABLE(document COLUMNS( val VARCHAR PATH '$.pathTest'))",
+            "JSON_TABLE(document COLUMNS( val VARCHAR(240) PATH '$.pathTest'))",
+            "JSON_TABLE(document COLUMNS( val VARCHAR(240) FORMAT JSON PATH '$.pathTest'))",
 
             // These would require adapting ColDataType in Line 10176
             // "JSON_TABLE(document COLUMNS( val VARCHAR2(500 BYTE) PATH '$.pathTest'))",
