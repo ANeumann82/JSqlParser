@@ -105,8 +105,8 @@ public class JsonFunction extends ASTNodeAccessImpl implements Expression {
                     builder.append("UNKNOWN");
                     break;
                 default:
-                    throw new IllegalStateException("Unhandled JsonOnResponseBehavior: " + type );
-                    // this should never happen
+                    throw new IllegalStateException("Unhandled JsonOnResponseBehavior: " + type);
+                // this should never happen
             }
             return builder;
         }

@@ -92,13 +92,15 @@ public class JsonTableFunction extends Function {
         private boolean array;
 
         /**
-         * Creates a wrapper clause. Depending on the dialect, this clause can come before or after the PATH expression.
+         * Creates a wrapper clause. Depending on the dialect, this clause can come before or after
+         * the PATH expression.
          * <ul>
-         *     <li>Trino: after PATH</li>
-         *     <li>Oracle: before PATH</li>
+         * <li>Trino: after PATH</li>
+         * <li>Oracle: before PATH</li>
          * </ul>
          *
-         * @param beforePathExpression A flag to determine wether the clause is rendered before or after the PATH expression
+         * @param beforePathExpression A flag to determine wether the clause is rendered before or
+         *        after the PATH expression
          */
         public JsonTableWrapperClause(boolean beforePathExpression) {
             this.beforePathExpression = beforePathExpression;
@@ -213,8 +215,7 @@ public class JsonTableFunction extends Function {
     public static class JsonTableOnEmptyClause extends ASTNodeAccessImpl implements Serializable {
         private JsonTableOnEmptyType type;
 
-        public JsonTableOnEmptyClause() {
-        }
+        public JsonTableOnEmptyClause() {}
 
         public JsonTableOnEmptyType getType() {
             return type;
@@ -231,11 +232,11 @@ public class JsonTableFunction extends Function {
         }
     }
 
-    public static class JsonTableParsingTypeClause extends ASTNodeAccessImpl implements Serializable {
+    public static class JsonTableParsingTypeClause extends ASTNodeAccessImpl
+            implements Serializable {
         private JsonTableParsingType type;
 
-        public JsonTableParsingTypeClause() {
-        }
+        public JsonTableParsingTypeClause() {}
 
         public JsonTableParsingType getType() {
             return type;
