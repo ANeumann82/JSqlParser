@@ -10,7 +10,6 @@
 package net.sf.jsqlparser.statement.select;
 
 import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.from.JsonTable;
 import net.sf.jsqlparser.statement.imprt.Import;
 import net.sf.jsqlparser.statement.piped.FromQuery;
 
@@ -106,9 +105,4 @@ public interface FromItemVisitor<T> {
 
     <S> T visit(FromQuery fromQuery, S context);
 
-    default void visit(JsonTable jsonTable) {
-        this.visit(jsonTable, null);
-    }
-
-    <S> T visit(JsonTable jsonTable, S context);
 }

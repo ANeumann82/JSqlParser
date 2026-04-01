@@ -38,7 +38,6 @@ import java.lang.Integer;
 
 import net.sf.jsqlparser.parser.feature.*;
 import net.sf.jsqlparser.expression.*;
-import net.sf.jsqlparser.expression.json.*;
 import net.sf.jsqlparser.expression.operators.arithmetic.*;
 import net.sf.jsqlparser.expression.operators.conditional.*;
 import net.sf.jsqlparser.expression.operators.relational.*;
@@ -59,7 +58,6 @@ import net.sf.jsqlparser.statement.create.table.*;
 import net.sf.jsqlparser.statement.create.view.*;
 import net.sf.jsqlparser.statement.delete.*;
 import net.sf.jsqlparser.statement.drop.*;
-import net.sf.jsqlparser.statement.from.*;
 import net.sf.jsqlparser.statement.insert.*;
 import net.sf.jsqlparser.statement.execute.*;
 import net.sf.jsqlparser.statement.piped.*;
@@ -8203,6 +8201,18 @@ JsonFunction.JsonOnResponseBehavior JsonQueryOnResponseBehavior() : {
                     JsonFunction.JsonOnResponseBehaviorType.NULL);
         }
         |
+        <K_TRUE>
+        {
+            behavior = new JsonFunction.JsonOnResponseBehavior(
+                    JsonFunction.JsonOnResponseBehaviorType.TRUE);
+        }
+        |
+        <K_FALSE>
+        {
+            behavior = new JsonFunction.JsonOnResponseBehavior(
+                    JsonFunction.JsonOnResponseBehaviorType.FALSE);
+        }
+        |
         <K_EMPTY>
         {
             behavior = new JsonFunction.JsonOnResponseBehavior(
@@ -9385,6 +9395,18 @@ JsonFunction.JsonOnResponseBehavior JsonTableOnEmptyBehavior() : {
                     JsonFunction.JsonOnResponseBehaviorType.NULL);
         }
         |
+        <K_TRUE>
+        {
+            behavior = new JsonFunction.JsonOnResponseBehavior(
+                    JsonFunction.JsonOnResponseBehaviorType.TRUE);
+        }
+        |
+        <K_FALSE>
+        {
+            behavior = new JsonFunction.JsonOnResponseBehavior(
+                    JsonFunction.JsonOnResponseBehaviorType.FALSE);
+        }
+        |
         <K_DEFAULT> expression = Expression()
         {
             behavior = new JsonFunction.JsonOnResponseBehavior(
@@ -9524,6 +9546,7 @@ JsonTableFunction.JsonTableColumnDefinition JsonTableColumnDefinition() : {
                 )
                 JsonKeyword("SCALARS")
             ]
+            [ <K_EXISTS> { valueColumnDefinition.setExistsKeyword(true); } ]
             // In Oracle, the wrapper clause comes before the PATH expression
             [ wrapperClause = JsonTableWrapperClause(true) { valueColumnDefinition.setWrapperClause(wrapperClause); } ]
             [ <K_PATH> expression = Expression() { valueColumnDefinition.setPathExpression(expression); } ]
@@ -9548,6 +9571,15 @@ JsonTableFunction.JsonTableColumnDefinition JsonTableColumnDefinition() : {
                 behavior = JsonQueryOnResponseBehavior()
                 <K_ON> <K_ERROR>
                 { valueColumnDefinition.setOnErrorBehavior(behavior); }
+            ]
+            [
+                LOOKAHEAD( JsonTableOnEmptyBehavior() <K_ON> <K_EMPTY> )
+                behavior = JsonTableOnEmptyBehavior()
+                <K_ON> <K_EMPTY>
+                {
+                    valueColumnDefinition.setOnEmptyBehavior(behavior);
+                    valueColumnDefinition.setOnEmptyAfterOnError(true);
+                }
             ]
         )
     )
@@ -9672,6 +9704,10 @@ JsonTableFunction.JsonTableOnErrorClause JsonTableOnErrorClause(boolean beforeCo
         |
         <K_EMPTY> { onErrorClause.setType(JsonTableFunction.JsonTableOnErrorType.EMPTY); }
         |
+        <K_TRUE> { onErrorClause.setType(JsonTableFunction.JsonTableOnErrorType.TRUE); }
+        |
+        <K_FALSE> { onErrorClause.setType(JsonTableFunction.JsonTableOnErrorType.FALSE); }
+        |
         <K_NULL> { onErrorClause.setType(JsonTableFunction.JsonTableOnErrorType.NULL); }
     )
     <K_ON> <K_ERROR>
@@ -9692,6 +9728,10 @@ JsonTableFunction.JsonTableOnEmptyClause JsonTableOnEmptyClause() : {
         <K_ERROR> { onEmptyClause.setType(JsonTableFunction.JsonTableOnEmptyType.ERROR); }
         |
         <K_EMPTY> { onEmptyClause.setType(JsonTableFunction.JsonTableOnEmptyType.EMPTY); }
+        |
+        <K_TRUE> { onEmptyClause.setType(JsonTableFunction.JsonTableOnEmptyType.TRUE); }
+        |
+        <K_FALSE> { onEmptyClause.setType(JsonTableFunction.JsonTableOnEmptyType.FALSE); }
         |
         <K_NULL> { onEmptyClause.setType(JsonTableFunction.JsonTableOnEmptyType.NULL); }
     )

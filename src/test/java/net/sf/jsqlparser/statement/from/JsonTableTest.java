@@ -3,7 +3,6 @@ package net.sf.jsqlparser.statement.from;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.JsonTableFunction;
-import net.sf.jsqlparser.expression.json.JsonOnEmptyType;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.FromItem;
@@ -57,6 +56,10 @@ public class JsonTableTest {
             "JSON_TABLE(document COLUMNS( hasValue EXISTS PATH '$.pathTest' ERROR ON ERROR ERROR ON EMPTY))",
             "JSON_TABLE(document COLUMNS( hasValue EXISTS PATH '$.pathTest' ERROR ON ERROR))",
             "JSON_TABLE(document COLUMNS( hasValue EXISTS PATH '$.pathTest' ERROR ON EMPTY))",
+            "JSON_TABLE(document COLUMNS( hasValue EXISTS PATH '$.pathTest' TRUE ON ERROR))",
+            "JSON_TABLE(document COLUMNS( hasValue EXISTS PATH '$.pathTest' TRUE ON EMPTY))",
+            "JSON_TABLE(document COLUMNS( hasValue EXISTS PATH '$.pathTest' FALSE ON ERROR))",
+            "JSON_TABLE(document COLUMNS( hasValue EXISTS PATH '$.pathTest' FALSE ON EMPTY))",
             "JSON_TABLE(document COLUMNS( hasValue EXISTS ERROR ON EMPTY))",
             "JSON_TABLE(document COLUMNS( hasValue EXISTS))",
     })
@@ -98,7 +101,7 @@ public class JsonTableTest {
             // These would require adapting ColDataType in Line 10176
 //            "JSON_TABLE(document COLUMNS( val VARCHAR2(500 BYTE) PATH '$.pathTest'))",
 //            "JSON_TABLE(document COLUMNS( val VARCHAR2(100 CHAR) PATH '$.pathTest'))",
-//            "JSON_TABLE(document COLUMNS( val VARCHAR2(500 BYTE) FORMAT JSON DISALLOW SCALARS WITH UNCONDITIONAL ARRAY WRAPPER PATH '$.pathTest' EMPTY OBJECT ON ERROR))",
+            "JSON_TABLE(document COLUMNS( val VARCHAR2 FORMAT JSON DISALLOW SCALARS WITH UNCONDITIONAL ARRAY WRAPPER PATH '$.pathTest' EMPTY OBJECT ON ERROR))",
     })
     void testQueryColumns(String jsonTableStr) throws JSQLParserException {
         JsonTableFunction table = parseTable(jsonTableStr);

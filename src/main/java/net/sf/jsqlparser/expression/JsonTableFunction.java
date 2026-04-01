@@ -33,11 +33,11 @@ public class JsonTableFunction extends Function {
     }
 
     public enum JsonTableOnErrorType {
-        ERROR, NULL, EMPTY
+        ERROR, NULL, EMPTY, TRUE, FALSE
     }
 
     public enum JsonTableOnEmptyType {
-        ERROR, NULL, EMPTY
+        ERROR, NULL, EMPTY, TRUE, FALSE
     }
 
     public enum JsonTableParsingType {
@@ -466,6 +466,8 @@ public class JsonTableFunction extends Function {
         private boolean forOrdinality;
         private ColDataType dataType;
         private boolean formatJson;
+        private boolean exists;
+        private boolean onEmptyAfterOnError;
         private String encoding;
         private Expression pathExpression;
         private JsonTableWrapperClause wrapperClause;
@@ -480,6 +482,17 @@ public class JsonTableFunction extends Function {
 
         public JsonTableValueColumnDefinition setColumnName(String columnName) {
             this.columnName = columnName;
+            return this;
+        }
+
+
+        public JsonTableValueColumnDefinition setExistsKeyword(boolean exists) {
+            this.exists = exists;
+            return this;
+        }
+
+        public JsonTableValueColumnDefinition setOnEmptyAfterOnError(boolean b) {
+            this.onEmptyAfterOnError = b;
             return this;
         }
 
@@ -595,6 +608,9 @@ public class JsonTableFunction extends Function {
                 builder.append(" FOR ORDINALITY");
                 return builder.toString();
             }
+            if (exists) {
+                builder.append(" EXISTS");
+            }
             if (dataType != null) {
                 builder.append(" ").append(dataType);
             }
@@ -621,11 +637,14 @@ public class JsonTableFunction extends Function {
             if (quotesClause != null) {
                 builder.append(" ").append(quotesClause);
             }
-            if (onEmptyBehavior != null) {
+            if (onEmptyBehavior != null && !onEmptyAfterOnError) {
                 builder.append(" ").append(onEmptyBehavior).append(" ON EMPTY");
             }
             if (onErrorBehavior != null) {
                 builder.append(" ").append(onErrorBehavior).append(" ON ERROR");
+            }
+            if (onEmptyBehavior != null && onEmptyAfterOnError) {
+                builder.append(" ").append(onEmptyBehavior).append(" ON EMPTY");
             }
             return builder.toString();
         }
