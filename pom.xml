@@ -99,7 +99,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.27.3</version>
+            <version>(3.27.7,)</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -277,7 +277,7 @@
             <plugin>
                 <groupId>org.javacc.plugin</groupId>
                 <artifactId>javacc-maven-plugin</artifactId>
-                <version>3.0.3</version>
+                <version>3.8.0</version>
                 <executions>
                     <execution>
                         <id>javacc</id>
@@ -286,14 +286,14 @@
                             <goal>jjtree-javacc</goal>
                         </goals>
                         <configuration>
-                            <grammarEncoding>UTF-8</grammarEncoding>
-                            <isStatic>false</isStatic>
-                            <debugParser>false</debugParser>
-                            <debugLookAhead>false</debugLookAhead>
-                            <codeGenerator>java</codeGenerator>
-
-                            <!-- <unicodeInput>true</unicodeInput> -->
-                            <!-- <javaUnicodeEscape>true</javaUnicodeEscape> -->
+                            <javaccCmdLineArgs>
+                                <gen>-CODE_GENERATOR="Java"</gen>
+                                <enc>-GRAMMAR_ENCODING="UTF-8"</enc>
+                            </javaccCmdLineArgs>
+                            <jjtreeCmdLineArgs>
+                                <enc>-GRAMMAR_ENCODING="UTF-8"</enc>
+                                <gen>-CODE_GENERATOR="Java"</gen>
+                            </jjtreeCmdLineArgs>
                         </configuration>
                     </execution>
                 </executions>
