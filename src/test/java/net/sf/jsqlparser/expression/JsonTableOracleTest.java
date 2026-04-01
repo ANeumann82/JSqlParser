@@ -1,8 +1,6 @@
-package net.sf.jsqlparser.statement.from;
+package net.sf.jsqlparser.expression;
 
 import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.JsonTableFunction;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.FromItem;
@@ -15,7 +13,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.*;
 
-public class JsonTableTest {
+public class JsonTableOracleTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
@@ -179,109 +177,22 @@ public class JsonTableTest {
                 .isEqualTo(JsonTableFunction.JsonTableParsingType.STRICT);
     }
 
-    // @Test
-    // void testColumnTypeExists() throws JSQLParserException {
-    // String expression = "JSON_TABLE(document COLUMNS( hasValue EXISTS PATH '$.pathTest'))";
-    // JsonTableFunction table = parseTable(expression);
-    //
-    // assertThat(table.getColumnsClause().getColumnDefinitions()).hasSize(1);
-    //
-    // JsonTableFunction.JsonTableColumnDefinition col =
-    // table.getColumnsClause().getColumnDefinitions().get(0);
-    // assertThat(col.getType()).isEqualTo(JsonTableColumnType.JSON_EXISTS);
-    // }
+    @Test
+    void testColumnTypeExists() throws JSQLParserException {
+        String expression = "JSON_TABLE(document COLUMNS( hasValue EXISTS PATH '$.pathTest'))";
+        JsonTableFunction table = parseTable(expression);
 
-    // @Test
-    // void testBuilder() {
-    // Column c = new Column("document");
-    //
-    // JsonTable table = new JsonTable().withExpression(c)
-    // .withPathExpression("$.subPath")
-    // .withFormatJson(true)
-    // .withType(JsonTableType.STRICT)
-    // .withOnEmptyType(JsonOnEmptyType.NULL)
-    // .withOnErrorType(JsonOnErrorType.ERROR)
-    // .withColumn(new JsonTableColumn().withName("id")
-    // .withType(JsonTableColumnType.ORDINALITY));
-    //
-    // assertThat(table.toString()).isEqualTo(
-    // "JSON_TABLE(document FORMAT JSON, '$.subPath' ERROR ON ERROR TYPE(STRICT) NULL ON EMPTY
-    // COLUMNS(id FOR ORDINALITY))");
-    // }
+        assertThat(table.getColumnsClause().getColumnDefinitions()).hasSize(1);
 
-    // @Test
-    // void testValidSetters() {
-    // JsonTableFunction table = new JsonTableFunction();
-    //
-    // JsonTableFunction.JsonTableOnEmptyClause onEmptyClause = new
-    // JsonTableFunction.JsonTableOnEmptyClause();
-    // JsonTableFunction.JsonTableOnErrorClause onErrorClause = new
-    // JsonTableFunction.JsonTableOnErrorClause(true);
-    //
-    // assertThatNoException().isThrownBy(() -> {
-    // table.setOnEmptyClause(null);
-    // onEmptyClause.setType(JsonTableFunction.JsonTableOnEmptyType.NULL);
-    // onEmptyClause.setType(JsonTableFunction.JsonTableOnEmptyType.ERROR);
-    //
-    // onErrorClause.setOnErrorType(null);
-    // onErrorClause.setOnErrorType(JsonTableFunction.JsonTableOnErrorType);
-    // onErrorClause.setOnErrorType(JsonOnErrorType.ERROR);
-    //
-    // table.setType(null);
-    // table.setType(JsonTableType.LAX);
-    // table.setType(JsonTableType.STRICT);
-    // });
-    // }
+        JsonTableFunction.JsonTableColumnDefinition col =
+                table.getColumnsClause().getColumnDefinitions().get(0);
+        assertThat(col).isInstanceOf(JsonTableFunction.JsonTableValueColumnDefinition.class);
 
-    // @Test
-    // void testInvalidSetters() {
-    // JsonTableFunction table = new JsonTable();
-    //
-    // assertThatThrownBy(() -> table.setOnEmptyType(JsonOnEmptyType.EMPTY))
-    // .isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> table.setOnEmptyType(JsonOnEmptyType.EMPTY_ARRAY))
-    // .isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> table.setOnEmptyType(JsonOnEmptyType.EMPTY_OBJECT))
-    // .isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> table.setOnEmptyType(JsonOnEmptyType.FALSE))
-    // .isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> table.setOnEmptyType(JsonOnEmptyType.TRUE))
-    // .isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> table.setOnEmptyType(JsonOnEmptyType.DEFAULT))
-    // .isInstanceOf(IllegalArgumentException.class);
-    //
-    // assertThatThrownBy(() -> table.setOnErrorType(JsonOnErrorType.EMPTY))
-    // .isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> table.setOnErrorType(JsonOnErrorType.EMPTY_ARRAY))
-    // .isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> table.setOnErrorType(JsonOnErrorType.EMPTY_OBJECT))
-    // .isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> table.setOnErrorType(JsonOnErrorType.FALSE))
-    // .isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> table.setOnErrorType(JsonOnErrorType.TRUE))
-    // .isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> table.setOnErrorType(JsonOnErrorType.DEFAULT))
-    // .isInstanceOf(IllegalArgumentException.class);
-    //
-    // JsonTableColumn column = new JsonTableColumn();
-    //
-    // assertThatThrownBy(() -> {
-    // column.setType(JsonTableColumnType.JSON_EXISTS);
-    // column.setFormatJson(true);
-    // }).isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> {
-    // column.setType(JsonTableColumnType.JSON_VALUE);
-    // column.setFormatJson(true);
-    // }).isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> {
-    // column.setType(JsonTableColumnType.ORDINALITY);
-    // column.setFormatJson(true);
-    // }).isInstanceOf(IllegalArgumentException.class);
-    // assertThatThrownBy(() -> {
-    // column.setType(JsonTableColumnType.JSON_NESTED_PATH);
-    // column.setFormatJson(true);
-    // }).isInstanceOf(IllegalArgumentException.class);
-    // }
+        JsonTableFunction.JsonTableValueColumnDefinition valueCol =
+                (JsonTableFunction.JsonTableValueColumnDefinition) col;
+
+        assertThat(valueCol.isExists()).isTrue();
+    }
 
     private JsonTableFunction parseTable(String jsonTableStr) throws JSQLParserException {
         String sql = "SELECT * FROM " + jsonTableStr;

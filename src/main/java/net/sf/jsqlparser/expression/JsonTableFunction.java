@@ -486,6 +486,9 @@ public class JsonTableFunction extends Function {
             return this;
         }
 
+        public boolean isExists() {
+            return exists;
+        }
 
         public JsonTableValueColumnDefinition setExistsKeyword(boolean exists) {
             this.exists = exists;
