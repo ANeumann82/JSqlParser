@@ -73,6 +73,8 @@ public class JsonTableOracleTest {
             "JSON_TABLE(document COLUMNS( val FORMAT JSON PATH '$.pathTest'))",
             "JSON_TABLE(document COLUMNS( val ALLOW SCALARS PATH '$.pathTest'))",
             "JSON_TABLE(document COLUMNS( val DISALLOW SCALARS PATH '$.pathTest'))",
+            "JSON_TABLE(document COLUMNS( val VARCHAR(240) ALLOW SCALARS PATH '$.pathTest'))",
+            "JSON_TABLE(document COLUMNS( val INT DISALLOW SCALARS PATH '$.pathTest'))",
             "JSON_TABLE(document COLUMNS( val FORMAT JSON DISALLOW SCALARS PATH '$.pathTest'))",
             "JSON_TABLE(document COLUMNS( val WITH WRAPPER PATH '$.pathTest'))",
             "JSON_TABLE(document COLUMNS( val WITHOUT WRAPPER PATH '$.pathTest'))",

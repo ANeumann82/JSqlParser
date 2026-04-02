@@ -18,6 +18,18 @@ import net.sf.jsqlparser.parser.ASTNodeAccessImpl;
 import net.sf.jsqlparser.statement.create.table.ColDataType;
 
 public class JsonTableFunction extends Function {
+
+    private Expression jsonInputExpression;
+    private Expression jsonPathExpression;
+    private String pathName;
+    private final List<JsonTablePassingClause> passingClauses = new ArrayList<>();
+    private JsonTableColumnsClause columnsClause;
+    private JsonTablePlanClause planClause;
+    private JsonTableOnErrorClause onErrorClause;
+    private JsonTableParsingTypeClause parsingTypeClause;
+    private JsonTableOnEmptyClause onEmptyClause;
+    private boolean formatJson;
+
     public enum JsonTablePlanOperator {
         COMMA(", "), INNER(" INNER "), OUTER(" OUTER "), CROSS(" CROSS "), UNION(" UNION ");
 
@@ -215,8 +227,6 @@ public class JsonTableFunction extends Function {
     public static class JsonTableOnEmptyClause extends ASTNodeAccessImpl implements Serializable {
         private JsonTableOnEmptyType type;
 
-        public JsonTableOnEmptyClause() {}
-
         public JsonTableOnEmptyType getType() {
             return type;
         }
@@ -235,8 +245,6 @@ public class JsonTableFunction extends Function {
     public static class JsonTableParsingTypeClause extends ASTNodeAccessImpl
             implements Serializable {
         private JsonTableParsingType type;
-
-        public JsonTableParsingTypeClause() {}
 
         public JsonTableParsingType getType() {
             return type;
@@ -690,17 +698,6 @@ public class JsonTableFunction extends Function {
             return builder.toString();
         }
     }
-
-    private Expression jsonInputExpression;
-    private Expression jsonPathExpression;
-    private String pathName;
-    private final List<JsonTablePassingClause> passingClauses = new ArrayList<>();
-    private JsonTableColumnsClause columnsClause;
-    private JsonTablePlanClause planClause;
-    private JsonTableOnErrorClause onErrorClause;
-    private JsonTableParsingTypeClause parsingTypeClause;
-    private JsonTableOnEmptyClause onEmptyClause;
-    private boolean formatJson;
 
     public JsonTableFunction() {
         setName("JSON_TABLE");
